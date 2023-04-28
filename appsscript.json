@@ -1,0 +1,27 @@
+{
+  "timeZone": "America/Sao_Paulo",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "closeTrades",
+      "functionName": "closeTrades",
+      "defaultShortcut": "Ctrl+Alt+Shift+0"
+    }, {
+      "menuName": "clearTradePrices",
+      "functionName": "clearTradePrices"
+    }, {
+      "menuName": "setBuys",
+      "functionName": "setBuys"
+    }, {
+      "menuName": "setSells",
+      "functionName": "setSells"
+    }, {
+      "menuName": "endTrades",
+      "functionName": "endTrades",
+      "defaultShortcut": "Ctrl+Alt+Shift+0"
+    }]
+  }
+}
