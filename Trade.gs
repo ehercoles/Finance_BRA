@@ -1,5 +1,4 @@
 var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-var portfolioSheet = spreadsheet.getSheetByName('Portfolio');
 
 function addSell(rowData) {
   var sellSheet = spreadsheet.getSheetByName('Sell');
@@ -34,8 +33,8 @@ function addBuy(rowData) {
 }
 
 function sell() {
-  var sellRange = portfolioSheet.getRange('Sell');
-  var positions = portfolioSheet.getRange('Position');
+  var sellRange = spreadsheet.getRangeByName('Sell');
+  var positions = spreadsheet.getRangeByName('Position');
   const numRows = sellRange.getNumRows();
   var sellData = [];
   
@@ -83,8 +82,8 @@ function sell() {
 }
 
 function buy() {
-  var buyRange = portfolioSheet.getRange('Buy');
-  var positions = portfolioSheet.getRange('Position');
+  var buyRange = spreadsheet.getRangeByName('Buy');
+  var positions = spreadsheet.getRangeByName('Position');
   const numRows = buyRange.getNumRows();
   var buyData = [];
   
@@ -145,32 +144,32 @@ function buy() {
 }
 
 function clearTrades() {
-  portfolioSheet.getRange('Sell').setValue('');
-  portfolioSheet.getRange('Buy').setValue('');
+  spreadsheet.getRangeByName('Sell').setValue('');
+  spreadsheet.getRangeByName('Buy').setValue('');
 }
 
 function clearPrices() {
-  portfolioSheet.getRange('SellPrice').setValue('');
-  portfolioSheet.getRange('BuyPrice').setValue('');
+  spreadsheet.getRangeByName('SellPrice').setValue('');
+  spreadsheet.getRangeByName('BuyPrice').setValue('');
 }
 
 function setTrades(mode) {
   try {
-    var targetQuantities = portfolioSheet.getRange('TargetQuantity');
-    var prices = portfolioSheet.getRange('Price');
-    var sellRange = portfolioSheet.getRange('Sell');
-    var buyRange = portfolioSheet.getRange('Buy');
-    var tradeCompensation = portfolioSheet.getRange('TradeCompensation');
+    var targetQuantities = spreadsheet.getRangeByName('TargetQuantity');
+    var prices = spreadsheet.getRangeByName('Price');
+    var sellRange = spreadsheet.getRangeByName('Sell');
+    var buyRange = spreadsheet.getRangeByName('Buy');
+    var tradeCompensation = spreadsheet.getRangeByName('TradeCompensation');
     const numRows = targetQuantities.getNumRows();
     
     tradeCompensation.setValue('');
 
-    for (var i2 = 0; i2 < 2; i2++) {
+    for (var precision = 0; precision < 2; precision++) {
       for (var i = 1; i <= numRows; i++) {
         var targetQuantityCell = targetQuantities.getCell(i, 1);
         var qty = targetQuantityCell.getValue();
         var price = prices.getCell(i, 1).getValue();
-        
+
         if ((!mode || mode == 'sell') && targetQuantityCell.getBackgroundColor() == '#ff9900') { // orange
           var quantityCell = sellRange.getCell(i, 1);
           var priceCell = sellRange.getCell(i, 2);
@@ -188,12 +187,12 @@ function setTrades(mode) {
       }
 
       // Compensation
-      var tradeTotal = parseFloat(portfolioSheet.getRange('TradeTotal').getValue());
-      var cash = parseFloat(0 + portfolioSheet.getRange('Cash').getValue());
+      var tradeTotal = parseFloat(spreadsheet.getRangeByName('TradeTotal').getValue());
+      var cash = parseFloat(0 + spreadsheet.getRangeByName('Cash').getValue());
 
-      tradeCompensation.setValue(tradeTotal + cash);
+      tradeCompensation.setValue(tradeTotal - cash);
     }
-
+    
     tradeCompensation.setValue('');
     
   } catch (err) {
@@ -203,9 +202,9 @@ function setTrades(mode) {
 
 function setPrices() {
   try {
-    var prices = portfolioSheet.getRange('Price');
-    var sellRange = portfolioSheet.getRange('Sell');
-    var buyRange = portfolioSheet.getRange('Buy');
+    var prices = spreadsheet.getRangeByName('Price');
+    var sellRange = spreadsheet.getRangeByName('Sell');
+    var buyRange = spreadsheet.getRangeByName('Buy');
     const numRows = prices.getNumRows();
     
     // Sell range
@@ -247,9 +246,9 @@ function setBuy() {
 }
 
 function setBalance() {
-  var tradeTotalCell = portfolioSheet.getRange('TradeTotal');
-  var dayTotalCell = portfolioSheet.getRange('DayTotal');
-  var cashCell = portfolioSheet.getRange('Cash');
+  var tradeTotalCell = spreadsheet.getRangeByName('TradeTotal');
+  var dayTotalCell = spreadsheet.getRangeByName('DayTotal');
+  var cashCell = spreadsheet.getRangeByName('Cash');
   
   dayTotalCell.setFormula(dayTotalCell.getValue() + ' + ' + tradeTotalCell.getValue());
   cashCell.setValue('');
@@ -260,8 +259,8 @@ function endTrades() {
     //var lock = LockService.getScriptLock();
     //lock.waitLock(20000);
 
-    var dayTotalCell = portfolioSheet.getRange('DayTotal');
-    var cashCell = portfolioSheet.getRange('Cash');
+    var dayTotalCell = spreadsheet.getRangeByName('DayTotal');
+    var cashCell = spreadsheet.getRangeByName('Cash');
 
     if (dayTotalCell.getValue() != 0) {
       if (!confirm('Day Total is not empty')) {
