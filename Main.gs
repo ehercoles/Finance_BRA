@@ -232,15 +232,6 @@ function setBuy() {
   setOrders('buy');
 }
 
-function confirm(message) {
-  var ui = SpreadsheetApp.getUi();
-  var result = ui.alert(
-     message,
-     'Are you sure you wish to proceed?',
-      ui.ButtonSet.YES_NO);
-  return result == ui.Button.YES;
-}
-
 function setBalance(dayTotal) {
 
   var orderTotal = spreadsheet.getRangeByName('OrderTotal');
@@ -253,9 +244,6 @@ function setBalance(dayTotal) {
 function fillOrders() {
   
   try {
-    //var lock = LockService.getScriptLock();
-    //lock.waitLock(20000);
-
     var dayTotal = spreadsheet.getRangeByName('DayTotal');
 
     if ((dayTotal.getValue() != 0) && (!confirm('Day Total is not empty'))) {
@@ -266,16 +254,10 @@ function fillOrders() {
     sell();
     setBalance(dayTotal);
     clearOrders();
-    
-    //lock.releaseLock();
 
   } catch (err) {
     logError(err.stack);
   }
-}
-
-function logError(message) {
-  MailApp.sendEmail('ehercoles@gmail.com', 'GAS error', message);
 }
 
 function onOpen() {
