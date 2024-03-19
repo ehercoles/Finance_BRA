@@ -143,7 +143,7 @@ function buy() {
   }
 }
 
-function clearTrades() {
+function clearOrders() {
   spreadsheet.getRangeByName('Sell').setValue('');
   spreadsheet.getRangeByName('Buy').setValue('');
 }
@@ -153,7 +153,7 @@ function clearPrices() {
   spreadsheet.getRangeByName('BuyPrice').setValue('');
 }
 
-function setTrades(mode) {
+function setOrders(mode) {
   try {
     var targetQuantities = spreadsheet.getRangeByName('TargetQuantity');
     var prices = spreadsheet.getRangeByName('Price');
@@ -225,50 +225,50 @@ function setPrices() {
 }
 
 function setSell() {
-  setTrades('sell');
+  setOrders('sell');
 }
 
 function setBuy() {
-  setTrades('buy');
+  setOrders('buy');
 }
 
-function setBalance() {
-  var tradeTotalCell = spreadsheet.getRangeByName('TradeTotal');
-  var dayTotalCell = spreadsheet.getRangeByName('DayTotal');
-  var cashCell = spreadsheet.getRangeByName('Cash');
+function confirm(message) {
+  var ui = SpreadsheetApp.getUi();
+  var result = ui.alert(
+     message,
+     'Are you sure you wish to proceed?',
+      ui.ButtonSet.YES_NO);
+  return result == ui.Button.YES;
+}
+
+function setBalance(dayTotal) {
+
+  var orderTotal = spreadsheet.getRangeByName('OrderTotal');
+  var cash = spreadsheet.getRangeByName('Cash');
   
-  dayTotalCell.setFormula(dayTotalCell.getValue() + ' + ' + tradeTotalCell.getValue());
-  cashCell.setValue('');
+  dayTotal.setFormula(dayTotal.getValue() + ' + ' + orderTotal.getValue());
+  cash.setValue('');
 }
 
-function endTrades() {
+function fillOrders() {
+  
   try {
     //var lock = LockService.getScriptLock();
     //lock.waitLock(20000);
 
-    var dayTotalCell = spreadsheet.getRangeByName('DayTotal');
-    var cashCell = spreadsheet.getRangeByName('Cash');
+    var dayTotal = spreadsheet.getRangeByName('DayTotal');
 
-    if (dayTotalCell.getValue() != 0) {
-      if (!confirm('Day Total is not empty')) {
-        //SpreadsheetApp.getUi().alert('exit');
-        return;
-      }
+    if ((dayTotal.getValue() != 0) && (!confirm('Day Total is not empty'))) {
+      return;
     }
 
-    if (cashCell.getValue() != 0) {
-      if (!confirm('Cash is not empty')) {
-        //SpreadsheetApp.getUi().alert('exit');
-        return;
-      }
-    }
-
-    sell();
     buy();
-    setBalance();
-    clearTrades();
+    sell();
+    setBalance(dayTotal);
+    clearOrders();
     
     //lock.releaseLock();
+
   } catch (err) {
     logError(err.stack);
   }
@@ -278,24 +278,16 @@ function logError(message) {
   MailApp.sendEmail('ehercoles@gmail.com', 'GAS error', message);
 }
 
-function confirm(message) {
-  var ui = SpreadsheetApp.getUi();
-  var result = ui.alert(
-     message,
-     'Are you sure you want to continue?',
-      ui.ButtonSet.YES_NO);
-  return result == ui.Button.YES;
-}
-
 function onOpen() {
   SpreadsheetApp.getUi()
-      .createMenu('Trade')
-      .addItem('Set', 'setTrades')
+      .createMenu('*Order')
+      .addItem('Set', 'setOrders')
       .addItem('Set Sell', 'setSell')
       .addItem('Set Buy', 'setBuy')
       .addItem('Set Prices', 'setPrices')
       .addItem('Clear Prices', 'clearPrices')
-      .addItem('Clear', 'clearTrades')
-      .addItem('End', 'endTrades')
+      .addItem('Clear', 'clearOrders')
+      .addSeparator()
+      .addItem('Fill', 'fillOrders')
       .addToUi();
 }
