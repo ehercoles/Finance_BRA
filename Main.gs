@@ -67,16 +67,20 @@ function addOrder(orderType) {
     //Logger.log(orderData);
 
     let orderSheet = spreadsheet.getSheetByName(orderType);
-    let numRow = orderData.length;
+    const rowStart = 3;
+    const numRow = orderData.length;
     
     numCol = orderData[0].length;
-    orderSheet.insertRowsAfter(2, numRow);
-    orderSheet.getRange(3, 1, numRow, numCol).setValues(orderData);
+    orderSheet.insertRowsAfter(rowStart-1, numRow);
+    orderSheet.getRange(rowStart, 1, numRow, numCol).setValues(orderData);
     
     // Copy formula to the new cells
     if (!isBuy) {
-      let fromRange = orderSheet.getRange('G2:I2');
-      fromRange.copyTo(orderSheet.getRange('G3:I' + numRow + 2), {contentsOnly:false});
+      const colStart = numCol + 1;
+      const colCount = 3;
+
+      let fromRange = orderSheet.getRange(rowStart-1, colStart, 1, colCount);
+      fromRange.copyTo(orderSheet.getRange(rowStart, colStart, numRow, colCount), {contentsOnly:false});
     }
   }
 }
