@@ -4,9 +4,9 @@ function addOrder(orderType) {
 
   var orderRange = spreadsheet.getRangeByName(orderType);
   var positions = spreadsheet.getRangeByName('Position');
-  const numRows = orderRange.getNumRows();
   var orderData = [];
   var isBuy = orderType == 'Buy';
+  const numRows = orderRange.getNumRows();
   
   for (let i = 1; i <= numRows; i++) {
 
@@ -68,11 +68,11 @@ function addOrder(orderType) {
 
     let orderSheet = spreadsheet.getSheetByName(orderType);
     const rowStart = 3;
-    const numRow = orderData.length;
+    const rowCount = orderData.length;
     
     numCol = orderData[0].length;
-    orderSheet.insertRowsAfter(rowStart-1, numRow);
-    orderSheet.getRange(rowStart, 1, numRow, numCol).setValues(orderData);
+    orderSheet.insertRowsAfter(rowStart-1, rowCount);
+    orderSheet.getRange(rowStart, 1, rowCount, numCol).setValues(orderData);
     
     // Copy formula to the new cells
     if (!isBuy) {
@@ -80,7 +80,7 @@ function addOrder(orderType) {
       const colCount = 3;
 
       let fromRange = orderSheet.getRange(rowStart-1, colStart, 1, colCount);
-      fromRange.copyTo(orderSheet.getRange(rowStart, colStart, numRow, colCount), {contentsOnly:false});
+      fromRange.copyTo(orderSheet.getRange(rowStart, colStart, rowCount, colCount), {contentsOnly:false});
     }
   }
 }
