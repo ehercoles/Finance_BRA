@@ -36,52 +36,53 @@ function addOrder(orderType) {
         qty,
         ap,
         orderQty,
-        orderAp,
-        newAp,
+        orderAp, // Sheet "Sell" limit
+        newAp, // Sheet "Buy" limit
         newQty,
         i]); // order index
     }
   }
   
-  if (orderData.length > 0) {
-    let numCol = orderData[0].length;
+  if (orderData.length == 0) return;
 
-    // Set position
-    for (let i = 0; i < orderData.length; i++) {
-      
-      let orderIndex = orderData[i][numCol-1];
+  //#region Set position
+  let numCol = orderData[0].length;
 
-      positions.getCell(orderIndex, 2).setValue(orderData[i][numCol-2]); // Qty
-      positions.getCell(orderIndex, 3).setValue(orderData[i][numCol-3]); // AP
-    }
+  for (let i = 0; i < orderData.length; i++) {
     
-    // Add order
-    if (isBuy) {
-      orderData = removeArrayColumn(orderData, 0, -2);
-      
-    } else {
-      orderData = removeArrayColumn(orderData, 0, -3);
-    }
+    let orderIndex = orderData[i][numCol-1];
 
-    orderData.sort(sortFunction);
-    //Logger.log(orderData);
-
-    let orderSheet = spreadsheet.getSheetByName(orderType);
-    const rowStart = 3;
-    const rowCount = orderData.length;
+    positions.getCell(orderIndex, 2).setValue(orderData[i][numCol-2]); // Qty
+    positions.getCell(orderIndex, 3).setValue(orderData[i][numCol-3]); // AP
+  }
+  //#endregion
+  
+  //#region Add order
+  if (isBuy) {
+    orderData = Util.sliceColumn(orderData, 0, -2);
     
-    numCol = orderData[0].length;
-    orderSheet.insertRowsAfter(rowStart-1, rowCount);
-    orderSheet.getRange(rowStart, 1, rowCount, numCol).setValues(orderData);
-    
-    // Copy formula to the new cells
-    if (!isBuy) {
-      const colStart = numCol + 1;
-      const colCount = 3;
+  } else {
+    orderData = Util.sliceColumn(orderData, 0, -3);
+  }
 
-      let fromRange = orderSheet.getRange(rowStart-1, colStart, 1, colCount);
-      fromRange.copyTo(orderSheet.getRange(rowStart, colStart, rowCount, colCount), {contentsOnly:false});
-    }
+  orderData.sort(Util.sortFunction);
+  //Logger.log(orderData);
+
+  let orderSheet = spreadsheet.getSheetByName(orderType);
+  const rowStart = 3;
+  const rowCount = orderData.length;
+  
+  numCol = orderData[0].length;
+  orderSheet.insertRowsAfter(rowStart-1, rowCount);
+  orderSheet.getRange(rowStart, 1, rowCount, numCol).setValues(orderData);
+  
+  // Copy formula to the new cells
+  if (!isBuy) {
+    const colStart = numCol + 1;
+    const colCount = 3;
+
+    let fromRange = orderSheet.getRange(rowStart-1, colStart, 1, colCount);
+    fromRange.copyTo(orderSheet.getRange(rowStart, colStart, rowCount, colCount), {contentsOnly:false});
   }
 }
 
@@ -125,7 +126,7 @@ function setOrders(mode) {
     }
     
   } catch (err) {
-    logError(err.stack);
+    Util.logError(err.stack);
   }
 }
 
@@ -162,7 +163,7 @@ function setPrices() {
       }
     }
   } catch (err) {
-    logError(err.stack);
+    Util.logError(err.stack);
   }
 }
 
@@ -188,7 +189,7 @@ function fillOrders() {
   try {
     var dayTotal = spreadsheet.getRangeByName('DayTotal');
 
-    if ((dayTotal.getValue() != 0) && (!confirm('Day Total is not empty'))) return;
+    if ((dayTotal.getValue() != 0) && (!Util.confirm('Day Total is not empty'))) return;
 
     //SpreadsheetApp.getUi().alert('TEST');
 
@@ -198,7 +199,7 @@ function fillOrders() {
     clearOrders();
 
   } catch (err) {
-    logError(err.stack);
+    Util.logError(err.stack);
   }
 }
 
