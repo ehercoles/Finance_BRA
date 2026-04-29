@@ -1,67 +1,100 @@
-var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+let spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+function onOpen() {
+
+  SpreadsheetApp.getUi()
+      .createMenu('*Order')
+      .addItem('Set', 'setOrders')
+      .addItem('Clear Prices', 'clearPrices')
+      .addItem('Clear', 'clearOrders')
+      .addSeparator()
+      .addItem('Fill', 'fillOrders')
+      .addToUi();
+}
 
 function addOrder(orderType) {
 
-  var orderRange = spreadsheet.getRangeByName(orderType);
-  var positions = spreadsheet.getRangeByName('Position');
-  var orderData = [];
-  var isBuy = orderType == 'Buy';
+  let orderRange = spreadsheet.getRangeByName(orderType);
+  let positionRange = spreadsheet.getRangeByName('Position');
+  let orderData = [];
+  const isBuy = orderType == 'Buy';
   const numRows = orderRange.getNumRows();
   
-  for (let i = 1; i <= numRows; i++) {
+  //#region Set order
+  for (let i=1; i<=numRows; i++) {
 
+    let orderSymbol = positionRange.getCell(i, 1).getValue();
     let orderQty = parseInt(orderRange.getCell(i, 1).getValue());
-    let orderAp = parseFloat(orderRange.getCell(i, 2).getValue());
+    let orderPrice = parseFloat(orderRange.getCell(i, 2).getValue());
     
-    if (orderQty > 0 && orderAp > 0) {
-      let qty = parseInt(0 + positions.getCell(i, 2).getValue());
-      let ap = parseFloat(0 + positions.getCell(i, 3).getValue());
-      
-      if (ap == 0) {
-        ap = orderAp;
-      }
+    if (orderQty > 0 && orderPrice > 0) {
+
+      let qty = parseInt(0 + positionRange.getCell(i, 2).getValue());
+      let avgCost = parseFloat(0 + positionRange.getCell(i, 3).getValue());
       
       if (isBuy) {
+        
+        if (qty == 0) {
+
+          avgCost = orderPrice;
+        }
+
         var newQty = qty + orderQty;
-        var newAp = ((qty * ap) + (orderQty * orderAp)) / (qty + orderQty);
+        var newAvgCost = ((qty * avgCost) + (orderQty * orderPrice)) / (qty + orderQty);
 
       } else {
+
         var newQty = qty - orderQty;
-        var newAp = ap;
+        var newAvgCost = avgCost;
       }
       
       orderData.push([
         new Date(),
-        positions.getCell(i, 1).getValue(),
+        orderSymbol,
         qty,
-        ap,
+        avgCost,
         orderQty,
-        orderAp, // Sheet "Sell" limit
-        newAp, // Sheet "Buy" limit
+        orderPrice, // Sheet "Sell" limit
         newQty,
-        i]); // order index
+        newAvgCost, // Sheet "Buy" limit
+        i+1]); // Order index
     }
   }
   
   if (orderData.length == 0) return;
+  //#endregion
 
   //#region Set position
   let numCol = orderData[0].length;
 
-  for (let i = 0; i < orderData.length; i++) {
+  for (let i=0; i<orderData.length; i++) {
     
-    let orderIndex = orderData[i][numCol-1];
+    let orderRow = orderData[i];
+    let orderIndex = orderRow[numCol-1];
+    let qty = orderRow[6];
+    let avgCost = orderRow[7];
+    let values = [[qty, avgCost]];
+    let positionRangeStr = Utilities.formatString("B%s:C%s", orderIndex, orderIndex);
+    let positionRange2 = spreadsheet.getRange(positionRangeStr);
 
-    positions.getCell(orderIndex, 2).setValue(orderData[i][numCol-2]); // Qty
-    positions.getCell(orderIndex, 3).setValue(orderData[i][numCol-3]); // AP
+    if (qty == 0) {
+
+      positionRange2.setValue("");
+
+    } else {
+      
+      positionRange2.setValues(values);
+    }
   }
   //#endregion
   
   //#region Add order
   if (isBuy) {
-    orderData = Util.sliceColumn(orderData, 0, -2);
+    
+    orderData = Util.sliceColumn(orderData, 0, -1);
     
   } else {
+
     orderData = Util.sliceColumn(orderData, 0, -3);
   }
 
@@ -75,139 +108,63 @@ function addOrder(orderType) {
   numCol = orderData[0].length;
   orderSheet.insertRowsAfter(rowStart-1, rowCount);
   orderSheet.getRange(rowStart, 1, rowCount, numCol).setValues(orderData);
-  
-  // Copy formula to the new cells
-  if (!isBuy) {
-    const colStart = numCol + 1;
-    const colCount = 3;
-
-    let fromRange = orderSheet.getRange(rowStart-1, colStart, 1, colCount);
-    fromRange.copyTo(orderSheet.getRange(rowStart, colStart, rowCount, colCount), {contentsOnly:false});
-  }
+  //#endregion
 }
 
 function clearOrders() {
+
   spreadsheet.getRangeByName('Sell').setValue('');
   spreadsheet.getRangeByName('Buy').setValue('');
 }
 
 function clearPrices() {
+
   spreadsheet.getRangeByName('SellPrice').setValue('');
   spreadsheet.getRangeByName('BuyPrice').setValue('');
 }
 
-function setOrders(mode) {
+function setOrders() {
+
   try {
-    var targetQuantities = spreadsheet.getRangeByName('TargetQuantity');
-    var prices = spreadsheet.getRangeByName('Price');
-    var sellRange = spreadsheet.getRangeByName('Sell');
-    var buyRange = spreadsheet.getRangeByName('Buy');
-    const numRows = targetQuantities.getNumRows();
-    
-    for (var i = 1; i <= numRows; i++) {
-      var targetQuantityCell = targetQuantities.getCell(i, 1);
-      var qty = targetQuantityCell.getValue();
-      var price = prices.getCell(i, 1).getValue();
 
-      if ((!mode || mode == 'sell') && targetQuantityCell.getBackgroundColor() == '#ff9900') { // orange
-        var quantityCell = sellRange.getCell(i, 1);
-        var priceCell = sellRange.getCell(i, 2);
+    let targetQuantityRange = spreadsheet.getRangeByName('TargetQuantity');
+    let priceRange = spreadsheet.getRangeByName('Price');
+    let buyRange = spreadsheet.getRangeByName('Buy');
+    let sellRange = spreadsheet.getRangeByName('Sell');
+    const numRows = targetQuantityRange.getNumRows();
+    const buyOrders = new Array(numRows).fill([undefined,undefined]);
+    const sellOrders = new Array(numRows).fill([undefined,undefined]);
 
-        quantityCell.setValue(qty * -1);
-        priceCell.setValue(price);
-      }
-      else if ((!mode || mode == 'buy') && targetQuantityCell.getBackgroundColor() == '#34a853') { // green
-        var quantityCell = buyRange.getCell(i, 1);
-        var priceCell = buyRange.getCell(i, 2);
+    for (let i=1; i<=numRows; i++) {
 
-        quantityCell.setValue(qty);
-        priceCell.setValue(price);
-      }
-    }
-    
-  } catch (err) {
-    Util.logError(err.stack);
-  }
-}
-
-function setPrices() {
-  try {
-    var prices = spreadsheet.getRangeByName('Price');
-    var sellRange = spreadsheet.getRangeByName('Sell');
-    var buyRange = spreadsheet.getRangeByName('Buy');
-    const numRows = prices.getNumRows();
-    
-    // Sell range
-    for (var i = 1; i <= numRows; i++) {
-      var quantityCell = sellRange.getCell(i, 1);
-      var qty = quantityCell.getValue();
+      let targetQuantityCell = targetQuantityRange.getCell(i, 1);
+      let qty = targetQuantityCell.getValue();
+      let price = priceRange.getCell(i,1).getValue();
       
-      if (qty > 0) {
-        var price = prices.getCell(i, 1).getValue();
-        var priceCell = sellRange.getCell(i, 2);
-        
-        priceCell.setValue(price);
+      if (targetQuantityCell.getBackgroundColor() == '#ff9900') { // orange
+
+        sellOrders[i-1] = [qty*-1, price];
+
+      } else if (targetQuantityCell.getBackgroundColor() == '#34a853') { // green
+
+        buyOrders[i-1] = [qty, price];
       }
     }
 
-    // Buy range
-    for (var i = 1; i <= numRows; i++) {
-      var quantityCell = buyRange.getCell(i, 1);
-      var qty = quantityCell.getValue();
-      
-      if (qty > 0) {
-        var price = prices.getCell(i, 1).getValue();
-        var priceCell = buyRange.getCell(i, 2);
-        
-        priceCell.setValue(price);
-      }
-    }
-  } catch (err) {
-    Util.logError(err.stack);
-  }
-}
-
-function setSell() {
-  setOrders('sell');
-}
-
-function setBuy() {
-  setOrders('buy');
-}
-
-function setBalance(dayTotal) {
-
-  var orderTotal = spreadsheet.getRangeByName('OrderTotal');
-  var cash = spreadsheet.getRangeByName('Cash');
-  
-  dayTotal.setFormula(dayTotal.getValue() + ' + ' + orderTotal.getValue());
-  cash.setValue('');
-}
-
-function fillOrders() {
-  
-  try {
-    var dayTotal = spreadsheet.getRangeByName('DayTotal');
-
-    if ((dayTotal.getValue() != 0) && (!Util.confirm('Day Total is not empty'))) return;
-
-    //SpreadsheetApp.getUi().alert('TEST');
-
-    addOrder('Buy');
-    addOrder('Sell');
-    setBalance(dayTotal);
-    clearOrders();
+    buyRange.setValues(buyOrders);
+    sellRange.setValues(sellOrders);
 
   } catch (err) {
+
     Util.logError(err.stack);
   }
 }
 
 function incrementThreshold() {
 
-    const range = spreadsheet.getRangeByName('Threshold');
-    const value = range.getValue();
-    const rule = range.getDataValidation();
+    const threshold = spreadsheet.getRangeByName('Threshold');
+    const value = threshold.getValue();
+    const rule = threshold.getDataValidation();
     
     if (rule == null) return;
 
@@ -219,30 +176,50 @@ function incrementThreshold() {
     //Logger.log(validationValues);
 
     if (value < maxValue) {
-      range.setValue(value + 1);
+
+      threshold.setValue(value+1);
     }
 }
 
 function decrementThreshold() {
   
-    const range = spreadsheet.getRangeByName('Threshold');
-    const value = range.getValue();
+    const threshold = spreadsheet.getRangeByName('Threshold');
+    const value = threshold.getValue();
 
-    if (value > 1) {
-      range.setValue(value - 1);
+    if (value > 0) {
+      
+      threshold.setValue(value-1);
     }
 }
 
-function onOpen() {
-  SpreadsheetApp.getUi()
-      .createMenu('*Order')
-      .addItem('Set', 'setOrders')
-      .addItem('Set Sell', 'setSell')
-      .addItem('Set Buy', 'setBuy')
-      .addItem('Set Prices', 'setPrices')
-      .addItem('Clear Prices', 'clearPrices')
-      .addItem('Clear', 'clearOrders')
-      .addSeparator()
-      .addItem('Fill', 'fillOrders')
-      .addToUi();
+//#region BRA version: do not replace nor replicate the code below
+function setBalance(dayTotal) {
+
+  let orderTotal = spreadsheet.getRangeByName('OrderTotal');
+  let cash = spreadsheet.getRangeByName('Cash');
+  
+  dayTotal.setFormula(dayTotal.getValue() + ' + ' + orderTotal.getValue());
+  cash.setValue('');
 }
+
+function fillOrders() {
+  
+  try {
+
+    let dayTotal = spreadsheet.getRangeByName('DayTotal');
+
+    if ((dayTotal.getValue() != 0) && (!Util.confirm('Day total is not empty'))) return;
+
+    //SpreadsheetApp.getUi().alert('TEST');
+
+    addOrder('Buy');
+    addOrder('Sell');
+    setBalance(dayTotal);
+    clearOrders();
+
+  } catch (err) {
+    
+    Util.logError(err.stack);
+  }
+}
+//#endregion
